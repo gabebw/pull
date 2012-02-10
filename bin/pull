@@ -15,10 +15,6 @@ def current_branch
   `git symbolic-ref HEAD`.strip.sub("refs/heads/", "")
 end
 
-def current_branch_sha
-  `git show-ref HEAD -s`
-end
-
 def current_user
   `git config github.user`.strip
 end

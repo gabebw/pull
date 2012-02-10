@@ -15,5 +15,5 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
   gem.version       = Pull::VERSION
 
-  gem.add_development_dependency("json")
+  gem.add_dependency("json")
 end

@@ -76,6 +76,10 @@ end
 
 
 def try_to_create_pull_request(base = @base, head = @head, title = @title)
+  unless title
+    print "please create a title for the pull request\nTitle:"
+    title = gets.chomp
+  end
   post = Net::HTTP::Post.new(api_uri.request_uri)
   post.basic_auth("#{current_user}/token", current_token)
   post.set_form_data("pull[base]" => base,
@@ -98,8 +102,12 @@ ensure_github_token_is_set
 #                                specify nothing to pull to master
 # ?                              ask me what, where and how
 pull_to = ARGV[0]
-
-if pull_to == "--ask"
+puts pull_to
+if pull_to.nil? # pull to current master
+  puts "pulling to master"
+  @base = "master"
+  @head = current_branch
+elsif pull_to == "--ask"
   puts "please select a remote branch on which to open a pull request"
   pull_to_options.each_with_index do |o,i|
     puts "#{i+1} => #{o}"
@@ -126,11 +134,7 @@ elsif pull_to.match(":")
       exit 1
     end
   end
-else # pull to current master
-  @base = "master"
-  @head = current_branch
-end
-  
+end  
 
 json = JSON.parse(try_to_create_pull_request)
 

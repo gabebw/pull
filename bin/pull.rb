@@ -37,7 +37,7 @@ end
 # if the repo is forked, gets the parent repo
 def parent_repo
   return @pr if @pr
-  uri = URI("https://github.com/api/v2/json/repos/show/#{current_user}/#{repo}")
+  uri = URI("https://github.com/api/v2/json/repos/show/#{current_user}/#{current_repo}")
   http = Net::HTTP.new(uri.host, uri.port)
   http.use_ssl = true
   repo_info = http.request(Net::HTTP::Get.new(uri.request_uri)).body
@@ -45,16 +45,27 @@ def parent_repo
 end
 
 
-
+# gets all the branches in the current repo
 def parent_repo_branches(refresh = false)
   return @prbs if @prbs and not refresh
   uri = URI("https://github.com/api/v2/json/repos/show/#{parent_repo}/branches")
   http = Net::HTTP.new(uri.host, uri.port)
   http.use_ssl = true
   repo_info = http.request(Net::HTTP::Get.new(uri.request_uri)).body
-  @prbs = JSON.parse(repo_info)["repository"]["source"]
+  @prbs = JSON.parse(repo_info)["branches"].keys
 end
 
+def remote_branches
+  `git branch -r`.split("\n").reject{|b| b.match("->")}.map{|b| b.split("/")[1]}
+end
+
+# an array of all the places one can pull to
+def pull_to_options
+  return @pto if @pto
+  to_parent = parent_repo_branches.map{|m| "#{parent_repo}:#{m}"}
+  to_remote = remote_branches
+  @pto = to_parent + to_remote
+end
 
 def ensure_github_token_is_set
   if current_token.empty?
@@ -64,12 +75,12 @@ def ensure_github_token_is_set
 end
 
 
-def try_to_create_pull_request(repo, branch="master")
+def try_to_create_pull_request(base = @base, head = @head, title = @title)
   post = Net::HTTP::Post.new(api_uri.request_uri)
   post.basic_auth("#{current_user}/token", current_token)
-  post.set_form_data("pull[base]" => branch,
-                     "pull[head]" => current_branch,
-                     "pull[title]" => current_branch)
+  post.set_form_data("pull[base]" => base,
+                     "pull[head]" => head,
+                     "pull[title]" => title)
 
   http = Net::HTTP.new(api_uri.host, api_uri.port)
   http.use_ssl = true
@@ -87,30 +98,39 @@ ensure_github_token_is_set
 #                                specify nothing to pull to master
 # ?                              ask me what, where and how
 pull_to = ARGV[0]
-if ARGV[0] == "?"
-  remote_branches = 
 
-pull_args = pull_to.split(":")
-if pull_args[0] == "parent"
-  parent_branch = pull_args[1] || "master"
-  puts "initiate pull request to #{parent_repo}:#{parent_branch} [Y/n]?"
-  if ['y',''].include?(gets.chomp.downcase)
-    @base = parent_branch
-    @head = "#{current_user}:#{current_branch}"
+if pull_to == "--ask"
+  puts "please select a remote branch on which to open a pull request"
+  pull_to_options.each_with_index do |o,i|
+    puts "#{i+1} => #{o}"
+  end
+  chosen = gets.chomp.to_i
+  if (1..pull_to_options.count).include?(chosen)
+    pull_to_chosen  = pull_to_options[chosen]
+    to_parent = pull_to_chosen.match(":")
+    @base = to_parent ? pull_to_chosen.split(":")[1] : pull_to_chosen
+    @head = to_parent ? "#{current_user}:#{current_branch}" : current_branch
   else
+    puts "chosen option does not exist"
     exit 1
   end
+elsif pull_to.match(":")
+  pull_args = pull_to.split(":")
+  if pull_args[0] == "parent"
+    parent_branch = pull_args[1] || "master"
+    puts "initiate pull request to #{parent_repo}:#{parent_branch} [Y/n]?"
+    if ['y',''].include?(gets.chomp.downcase)
+      @base = parent_branch
+      @head = "#{current_user}:#{current_branch}"
+    else
+      exit 1
+    end
+  end
+else # pull to current master
+  @base = "master"
+  @head = current_branch
 end
-    
-puts "Making a pull request for #{current_branch}!"
-puts
-
-uri = URI("https://github.com/api/v2/json/repos/show/svs/pull/branches")
-http = Net::HTTP.new(uri.host, uri.port)
-http.use_ssl = true
-branch_info = http.request(Net::HTTP::Get.new(uri.request_uri)).body
-puts JSON.parse(branch_info)
-
+  
 
 json = JSON.parse(try_to_create_pull_request)
 

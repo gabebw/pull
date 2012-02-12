@@ -30,12 +30,7 @@ def ensure_github_token_is_set
   end
 end
 
-ensure_github_token_is_set
-
-puts "Making a pull request for #{current_branch}!"
-puts
-
-def try_to_create_pull_request
+def pull_request_response
   post = Net::HTTP::Post.new(api_uri.request_uri)
   post.basic_auth("#{current_user}/token", current_token)
   post.set_form_data("pull[base]" => "master",
@@ -45,16 +40,21 @@ def try_to_create_pull_request
   http = Net::HTTP.new(api_uri.host, api_uri.port)
   http.use_ssl = true
   response = http.request(post)
-  response.body
+  JSON.parse(response.body)
 end
 
-json = JSON.parse(try_to_create_pull_request)
+ensure_github_token_is_set
 
-if json.key?('error')
+puts "Making a pull request for #{current_branch}!"
+puts
+
+response = pull_request_response
+
+if response.key?('error')
   puts "ERROR:"
-  puts [json['error']].flatten.join("\n")
+  puts [response['error']].flatten.join("\n")
   exit 1
 else
-  pull_url = json['pull']['html_url']
+  pull_url = response['pull']['html_url']
   puts pull_url
 end

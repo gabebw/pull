@@ -98,7 +98,8 @@ def try_to_create_pull_request(base = @base, head = @head, title = @title, body 
                      "pull[head]" => head,
                      "pull[title]" => title)
 
-  http = Net::HTTP.new(api_uri.host, api_uri.port)
+  uri = api_uri(@user,@repo)
+  http = Net::HTTP.new(uri.host, uri.port)
   http.use_ssl = true
   response = http.request(post)
   response.body
@@ -142,9 +143,11 @@ elsif pull_to.match(":")
   if pull_args[0] == "parent"
     parent_branch = pull_args[1] || "master"
     puts "initiate pull request to #{parent_repo}:#{parent_branch} [Y/n]?"
-    if ['y',''].include?(gets.chomp.downcase)
+    if ['y',''].include?(STDIN.gets.chomp.downcase)
       @base = parent_branch
       @head = "#{current_user}:#{current_branch}"
+      @user = parent_branch.split("/")[0]
+      @repo = parent_branch.split("/")[1]
     else
       exit 1
     end

@@ -78,7 +78,7 @@ end
 def try_to_create_pull_request(base = @base, head = @head, title = @title)
   unless title
     print "please create a title for the pull request\nTitle:"
-    title = gets.chomp
+    title = STDIN.gets.chomp
   end
   post = Net::HTTP::Post.new(api_uri.request_uri)
   post.basic_auth("#{current_user}/token", current_token)
@@ -134,6 +134,11 @@ elsif pull_to.match(":")
       exit 1
     end
   end
+else
+  puts "pulling to #{pull_to}"
+  @base = pull_to
+  @head = current_branch
+  gets rescue nil
 end  
 
 json = JSON.parse(try_to_create_pull_request)

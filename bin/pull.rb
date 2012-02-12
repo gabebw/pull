@@ -45,7 +45,7 @@ def parent_repo
 end
 
 
-# gets all the branches in the current repo
+# gets all the branches in the current repos parent
 def parent_repo_branches(refresh = false)
   return @prbs if @prbs and not refresh
   uri = URI("https://github.com/api/v2/json/repos/show/#{parent_repo}/branches")
@@ -55,6 +55,7 @@ def parent_repo_branches(refresh = false)
   @prbs = JSON.parse(repo_info)["branches"].keys
 end
 
+# all the remote branches
 def remote_branches
   `git branch -r`.split("\n").reject{|b| b.match("->")}.map{|b| b.split("/")[1]}
 end
@@ -75,10 +76,21 @@ def ensure_github_token_is_set
 end
 
 
-def try_to_create_pull_request(base = @base, head = @head, title = @title)
+# sets the last commit message as the default title
+def default_title
+  `git log -n 1 --oneline`.chomp
+end
+
+
+def try_to_create_pull_request(base = @base, head = @head, title = @title, body = @body)
   unless title
-    print "please create a title for the pull request\nTitle:"
+    print "please create a title for the pull request\nleave blank for '#{default_title}'\nTitle: "
     title = STDIN.gets.chomp
+    title = default_title if title.empty?
+  end
+  unless body
+    print "please type some desriptive text for this pull request"
+    body = STDIN.gets.chomp
   end
   post = Net::HTTP::Post.new(api_uri.request_uri)
   post.basic_auth("#{current_user}/token", current_token)
@@ -102,22 +114,25 @@ ensure_github_token_is_set
 #                                specify nothing to pull to master
 # ?                              ask me what, where and how
 pull_to = ARGV[0]
-puts pull_to
 if pull_to.nil? # pull to current master
   puts "pulling to master"
   @base = "master"
   @head = current_branch
+elsif ["-h", "--help"].include?(pull_to)
+  puts "TODO: add usage note"
+  exit 0
 elsif pull_to == "--ask"
   puts "please select a remote branch on which to open a pull request"
   pull_to_options.each_with_index do |o,i|
     puts "#{i+1} => #{o}"
   end
-  chosen = gets.chomp.to_i
+  chosen = STDIN.gets.chomp.to_i - 1
   if (1..pull_to_options.count).include?(chosen)
     pull_to_chosen  = pull_to_options[chosen]
     to_parent = pull_to_chosen.match(":")
     @base = to_parent ? pull_to_chosen.split(":")[1] : pull_to_chosen
     @head = to_parent ? "#{current_user}:#{current_branch}" : current_branch
+    puts "pulling from #{@head} to #{@base}"
   else
     puts "chosen option does not exist"
     exit 1

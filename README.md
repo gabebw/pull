@@ -18,16 +18,24 @@ Or install it yourself as:
 
 ## Usage
 
-The gem assumes that you have a Github remote named "origin".
+You can pull to any branch in your repo or even to the parent repo if your repo is a fork of another repo
 
     # This breaks if your branch isn't on Github.
     $ git push origin your-branch
-    $ pull
-    Making a pull request for your-branch!
+    $ pull parent:master
 
-    https://github.com/USER/REPO/pull/1
+    or
+    
+    $ pull parent:feature-branch
 
-Voila.
+    or 
+    
+    $ pull master # master branch of your own repo
+
+    or
+    
+    $ pull --ask # gets a list of all branches where you can pull to including parent repo branches
+
 
 ## Thanks
 

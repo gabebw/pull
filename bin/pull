@@ -92,13 +92,13 @@ def try_to_create_pull_request(base = @base, head = @head, title = @title, body 
     print "please type some desriptive text for this pull request"
     body = STDIN.gets.chomp
   end
-  post = Net::HTTP::Post.new(api_uri.request_uri)
+  uri = api_uri(@user,@repo)
+  post = Net::HTTP::Post.new(uri.request_uri)
   post.basic_auth("#{current_user}/token", current_token)
   post.set_form_data("pull[base]" => base,
                      "pull[head]" => head,
                      "pull[title]" => title)
 
-  uri = api_uri(@user,@repo)
   http = Net::HTTP.new(uri.host, uri.port)
   http.use_ssl = true
   response = http.request(post)
@@ -146,8 +146,8 @@ elsif pull_to.match(":")
     if ['y',''].include?(STDIN.gets.chomp.downcase)
       @base = parent_branch
       @head = "#{current_user}:#{current_branch}"
-      @user = parent_branch.split("/")[0]
-      @repo = parent_branch.split("/")[1]
+      @user = parent_repo.split("/")[0]
+      @repo = parent_repo.split("/")[1]
     else
       exit 1
     end

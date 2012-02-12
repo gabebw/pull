@@ -89,7 +89,7 @@ def try_to_create_pull_request(base = @base, head = @head, title = @title, body 
     title = default_title if title.empty?
   end
   unless body
-    print "please type some desriptive text for this pull request"
+    print "please type some desriptive text for this pull request: "
     body = STDIN.gets.chomp
   end
   uri = api_uri(@user,@repo)
@@ -97,7 +97,8 @@ def try_to_create_pull_request(base = @base, head = @head, title = @title, body 
   post.basic_auth("#{current_user}/token", current_token)
   post.set_form_data("pull[base]" => base,
                      "pull[head]" => head,
-                     "pull[title]" => title)
+                     "pull[title]" => title,
+                     "pull[body]" => body)
 
   http = Net::HTTP.new(uri.host, uri.port)
   http.use_ssl = true

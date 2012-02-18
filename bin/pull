@@ -30,7 +30,7 @@ def current_token
 end
 
 def current_repo
-  /git@[a-z.:\/]*/.match(File.read(".git/config")).to_s.split("/")[1].split(".")[0] # get the repo name from .git/config
+  /git@[a-z.:\/_-]*/.match(File.read(".git/config")).to_s.split("/")[1].split(".")[0] # get the repo name from .git/config
 end
 
 
@@ -106,6 +106,15 @@ def try_to_create_pull_request(base = @base, head = @head, title = @title, body 
   response.body
 end
 
+def show_usage
+  puts "usage:"
+  puts "pull --help               - show this message"
+  puts "pull --ask                - interactively choose where to send the pull request"
+  puts "pull [branch_name]        - to pull to named branch in your own repository"
+  puts "pull parent:              - please note the trailing :. Pull to master branch of parent repo"
+  puts "pull parent:[branch_name] - pull to named branch in parent repo"
+end
+
 ensure_github_token_is_set
 
 @base = @head = @title = nil 
@@ -121,7 +130,7 @@ if pull_to.nil? # pull to current master
   @base = "master"
   @head = current_branch
 elsif ["-h", "--help"].include?(pull_to)
-  puts "TODO: add usage note"
+  show_usage
   exit 0
 elsif pull_to == "--ask"
   puts "please select a remote branch on which to open a pull request"

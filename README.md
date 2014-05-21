@@ -1,4 +1,8 @@
-# Pull
+# No longer maintained
+
+I use `gh pull-request`, from [gh](https://github.com/jingweno/gh). You can also use `hub pull-request`, from [hub](https://github.com/github/hub).
+
+## Pull
 
 Creates Github pull requests from the command line.
 
